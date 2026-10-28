@@ -15,7 +15,6 @@
     <xs:restriction base="xs:string">
       <xs:pattern value="97[89][0-9]{10}"/>
     </xs:restriction>
-    </xs:restriction>
   </xs:simpleType>
 
   <xs:simpleType name="CurrencyCode">
