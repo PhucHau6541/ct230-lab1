@@ -1,8 +1,16 @@
 package vn.edu.bookstore.legacy.adapter.config;
 
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.xml.ws.BindingProvider;
+import jakarta.xml.ws.handler.Handler;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import vn.edu.bookstore.legacy.adapter.soap.SoapLoggingHandler;
 import vn.edu.bookstore.legacy.adapter.soap.generated.BookCatalogPortType;
 import vn.edu.bookstore.legacy.adapter.soap.generated.BookCatalogService;
 
@@ -15,12 +23,37 @@ public class LegacySoapClientConfig {
 
     @Bean
     BookCatalogPortType bookCatalogPort(LegacySoapProperties props) {
-        URL wsdl = LegacySoapClientConfig.class.getResource("/wsdl/BookCatalogService.wsdl");
-        BookCatalogPortType port = new BookCatalogService(wsdl).getBookCatalogPort();
-        // TODO(TH1-4): ép kiểu port sang BindingProvider, đặt vào request context:
-        //   - ENDPOINT_ADDRESS_PROPERTY = props.endpoint()
-        //   - CONNECT_TIMEOUT / REQUEST_TIMEOUT (mili giây) từ props
-        // TODO(TH1-5): nếu props.logMessages() thì thêm SoapLoggingHandler vào handler chain
+        URL wsdl = LegacySoapClientConfig.class.getResource(
+                "/wsdl/BookCatalogService.wsdl");
+
+        BookCatalogPortType port =
+                new BookCatalogService(wsdl).getBookCatalogPort();
+
+        // TH1-4: Cấu hình địa chỉ và thời gian chờ SOAP.
+        BindingProvider bp = (BindingProvider) port;
+
+        bp.getRequestContext().put(
+                BindingProvider.ENDPOINT_ADDRESS_PROPERTY,
+                props.endpoint());
+
+        bp.getRequestContext().put(
+                CONNECT_TIMEOUT,
+                Math.toIntExact(props.connectTimeout().toMillis()));
+
+        bp.getRequestContext().put(
+                REQUEST_TIMEOUT,
+                Math.toIntExact(props.readTimeout().toMillis()));
+
+        // TH1-5: Ghi log thông điệp SOAP nếu được bật.
+        if (props.logMessages()) {
+            List<Handler> chain =
+                    new ArrayList<>(bp.getBinding().getHandlerChain());
+
+            chain.add(new SoapLoggingHandler());
+
+            bp.getBinding().setHandlerChain(chain);
+        }
+
         return port;
     }
 }

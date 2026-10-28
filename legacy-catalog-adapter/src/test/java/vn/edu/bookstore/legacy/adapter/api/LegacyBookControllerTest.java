@@ -1,3 +1,4 @@
+
 package vn.edu.bookstore.legacy.adapter.api;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -16,16 +17,19 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import vn.edu.bookstore.legacy.adapter.LegacySoapTestServer;
 
-/** Kiểm thử tích hợp adapter ↔ dịch vụ SOAP kế thừa thật (chạy trong JVM kiểm thử). */
+/**
+ * Kiểm thử tích hợp REST adapter với dịch vụ SOAP kế thừa.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 class LegacyBookControllerTest {
 
-    static final LegacySoapTestServer SOAP = LegacySoapTestServer.start(0);
+    static final LegacySoapTestServer SOAP =
+            LegacySoapTestServer.start(0);
 
     @DynamicPropertySource
-    static void props(DynamicPropertyRegistry r) {
-        r.add("bookstore.legacy.endpoint", SOAP::url);
+    static void props(DynamicPropertyRegistry registry) {
+        registry.add("bookstore.legacy.endpoint", SOAP::url);
     }
 
     @AfterAll
@@ -36,6 +40,9 @@ class LegacyBookControllerTest {
     @Autowired
     MockMvc mvc;
 
+    /**
+     * TH1-8.1: Lấy sách thành công.
+     */
     @Test
     void layDuocSachTuHeThongKeThua() throws Exception {
         mvc.perform(get("/api/v1/legacy/books/9780134685991"))
@@ -47,8 +54,65 @@ class LegacyBookControllerTest {
                 .andExpect(jsonPath("$.source").value("legacy-soap"));
     }
 
-    // TODO(TH1-8): viết ca kiểm thử cho các nhánh lỗi:
-    //   9789999999999 → 404 book-not-found; "12345" → 400 validation-failed;
-    //   9790000000000 → 502 upstream-unavailable; tìm kiếm "micro" → 2 kết quả; q="a" → 400.
-    //   Thêm lớp kiểm thử riêng cho hệ thống kế thừa chậm (504) và tắt (503).
+    /**
+     * TH1-8.2: ISBN hợp lệ nhưng sách không tồn tại.
+     */
+    @Test
+    void sachKhongTonTaiThanh404BookNotFound() throws Exception {
+        mvc.perform(get("/api/v1/legacy/books/9789999999999"))
+                .andExpect(status().isNotFound())
+                .andExpect(content().contentTypeCompatibleWith(
+                        MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.type")
+                        .value("https://api.bookstore.vn/problems/book-not-found"))
+                .andExpect(jsonPath("$.legacyCode").value("BOOK_NOT_FOUND"))
+                .andExpect(jsonPath("$.instance")
+                        .value("/api/v1/legacy/books/9789999999999"));
+    }
+
+    /**
+     * TH1-8.3: ISBN sai định dạng bị từ chối tại REST adapter.
+     */
+    @Test
+    void isbnSaiBiChanTaiAdapter() throws Exception {
+        mvc.perform(get("/api/v1/legacy/books/12345"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type")
+                        .value("https://api.bookstore.vn/problems/validation-failed"));
+    }
+
+    /**
+     * TH1-8.4: Backend SOAP trả lỗi, adapter chuyển thành HTTP 502.
+     */
+    @Test
+    void faultServerThanh502UpstreamUnavailable() throws Exception {
+        mvc.perform(get("/api/v1/legacy/books/9790000000000"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.type")
+                        .value("https://api.bookstore.vn/problems/upstream-unavailable"))
+                .andExpect(jsonPath("$.legacyCode").value("BACKEND_ERROR"));
+    }
+
+    /**
+     * TH1-8.5: Tìm kiếm sách theo từ khóa micro.
+     */
+    @Test
+    void timKiemTheoTuKhoaMicro() throws Exception {
+        mvc.perform(get("/api/v1/legacy/books").param("q", "micro"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].isbn").value("9781492034025"));
+    }
+
+    /**
+     * TH1-8.6: Từ khóa tìm kiếm quá ngắn bị từ chối.
+     */
+    @Test
+    void tuKhoaQuaNganThanh400() throws Exception {
+        mvc.perform(get("/api/v1/legacy/books").param("q", "a"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.type")
+                        .value("https://api.bookstore.vn/problems/validation-failed"));
+    }
 }
+
