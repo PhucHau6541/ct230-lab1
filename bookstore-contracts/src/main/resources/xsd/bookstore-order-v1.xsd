@@ -12,6 +12,7 @@
   <!-- TODO(TH1-2): mã đơn có dạng ORD-2026-000417 → thêm xs:pattern -->
   <xs:simpleType name="OrderNumber">
     <xs:restriction base="xs:string">
+            <xs:pattern value="ORD-[0-9]{4}-[0-9]{6}"/>
     </xs:restriction>
   </xs:simpleType>
 

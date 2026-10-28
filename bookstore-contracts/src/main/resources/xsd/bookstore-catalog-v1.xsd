@@ -13,6 +13,8 @@
   <!-- TODO(TH1-2): ISBN-13 bắt đầu bằng 978 hoặc 979, tổng 13 chữ số → thêm xs:pattern -->
   <xs:simpleType name="Isbn13">
     <xs:restriction base="xs:string">
+      <xs:pattern value="97[89][0-9]{10}"/>
+    </xs:restriction>
     </xs:restriction>
   </xs:simpleType>
 
@@ -26,6 +28,8 @@
   <!-- TODO(TH1-2): số tiền không âm, tối đa 2 chữ số thập phân (minInclusive, fractionDigits) -->
   <xs:simpleType name="Amount">
     <xs:restriction base="xs:decimal">
+      <xs:minInclusive value="0"/>
+      <xs:fractionDigits value="2"/>
     </xs:restriction>
   </xs:simpleType>
 
