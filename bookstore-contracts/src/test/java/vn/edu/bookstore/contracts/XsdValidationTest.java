@@ -36,7 +36,7 @@ class XsdValidationTest {
     }
 
     // TODO(TH1-3): bỏ @Disabled sau khi hoàn thành TH1-2; thêm ca kiểm chứng cho đơn hàng sai trạng thái
-    @org.junit.jupiter.api.Disabled("TODO(TH1-3)")
+
     @ParameterizedTest
     @ValueSource(strings = {
             "book-invalid-isbn.xml",
@@ -45,7 +45,8 @@ class XsdValidationTest {
             "book-invalid-money-scale.xml",
             "book-invalid-currency.xml",
             "book-wrong-namespace.xml",
-            "order-invalid-number.xml"})
+            "order-invalid-number.xml",
+            "order-invalid-status.xml"})
     void tepViPhamLuocDoBiTuChoi(String file) {
         List<String> errors = XmlContracts.validate(sample(file));
         assertThat(errors).as("lỗi kiểm chứng của " + file).isNotEmpty();
@@ -86,7 +87,7 @@ class XsdValidationTest {
                 .contains("http://bookstore.edu.vn/catalog/v1");
     }
 
-    @org.junit.jupiter.api.Disabled("TODO(TH1-3)")
+
     @Test
     void ghiDoiTuongViPhamLuocDoBiChan() {
         Book book = new Book();
